@@ -1,17 +1,46 @@
+# == Class: cinder::rabbitmq
 #
-# class for installing rabbitmq server for cinder
+# Installs and manages rabbitmq server for cinder
 #
+# == Parameters:
+#
+# [*userid*]
+#   (optional) The username to use when connecting to Rabbit
+#   Defaults to 'guest'
+#
+# [*password*]
+#   (optional) The password to use when connecting to Rabbit
+#   Defaults to 'guest'
+#
+# [*port*]
+#   (optional) The port to use when connecting to Rabbit
+#   Defaults to '5672'
+#
+# [*virtual_host*]
+#   (optional) The virtual host to use when connecting to Rabbit
+#   Defaults to '/'
+#
+# [*enabled*]
+#   (optional) Whether to enable the Rabbit service
+#   Defaults to false
+#
+# [*rabbitmq_class*]
+#   (optional) Deprecated. The rabbitmq puppet class to depend on,
+#   which is dependent on the puppet-rabbitmq version.
+#   Use the default for 1.x, use 'rabbitmq' for 3.x.
+#   Use false if rabbitmq class should not be configured
+#   here
+#   Defaults to 'rabbitmq::server'
 #
 class cinder::rabbitmq(
-  $userid       = 'guest',
-  $password     = 'guest',
-  $port         = '5672',
-  $virtual_host = '/',
-  $enabled      = true
+  $userid         = 'guest',
+  $password       = 'guest',
+  $port           = '5672',
+  $virtual_host   = '/',
+  $enabled        = true,
+  # DEPRECATED PARAMETER
+  $rabbitmq_class = 'rabbitmq::server',
 ) {
-
-  # only configure cinder after the queue is up
-  Class['rabbitmq::service'] -> Anchor<| title == 'cinder-start' |>
 
   if ($enabled) {
     if $userid == 'guest' {
@@ -22,7 +51,6 @@ class cinder::rabbitmq(
         admin    => true,
         password => $password,
         provider => 'rabbitmqctl',
-        require  => Class['rabbitmq::server'],
       }
       # I need to figure out the appropriate permissions
       rabbitmq_user_permissions { "${userid}@${virtual_host}":
@@ -37,16 +65,25 @@ class cinder::rabbitmq(
     $service_ensure = 'stopped'
   }
 
-  class { 'rabbitmq::server':
-    service_ensure    => $service_ensure,
-    port              => $port,
-    delete_guest_user => $delete_guest_user,
+  # NOTE(bogdando) do not cinder manage rabbitmq service
+  # if rabbitmq_class is set to False
+  if $rabbitmq_class {
+    warning('The rabbitmq_class parameter is deprecated.')
+
+    class { $rabbitmq_class:
+      service_ensure    => $service_ensure,
+      port              => $port,
+      delete_guest_user => $delete_guest_user,
+    }
+    Class[$rabbitmq_class] -> Rabbitmq_user<| title == $userid |>
+    Class[$rabbitmq_class] -> Rabbitmq_vhost<| title == $virtual_host |>
+    # only configure cinder after the queue is up
+    Class[$rabbitmq_class] -> Anchor<| title == 'cinder-start' |>
   }
 
   if ($enabled) {
     rabbitmq_vhost { $virtual_host:
       provider => 'rabbitmqctl',
-      require  => Class['rabbitmq::server'],
     }
   }
 }

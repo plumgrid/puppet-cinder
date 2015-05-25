@@ -3,7 +3,8 @@ require 'spec_helper'
 describe 'cinder::db::mysql' do
 
   let :req_params do
-    {:password => 'pw'}
+    {:password => 'pw',
+     }
   end
 
   let :facts do
@@ -18,11 +19,12 @@ describe 'cinder::db::mysql' do
     let :params do
       req_params
     end
-    it { should contain_mysql__db('cinder').with(
-      :user         => 'cinder',
-      :password     => 'pw',
-      :host         => '127.0.0.1',
-      :charset      => 'latin1'
+    it { is_expected.to contain_openstacklib__db__mysql('cinder').with(
+      :user          => 'cinder',
+      :password_hash => '*D821809F681A40A6E379B50D0463EFAE20BDD122',
+      :host          => '127.0.0.1',
+      :charset       => 'utf8',
+      :collate       => 'utf8_general_ci',
      ) }
   end
   describe "overriding allowed_hosts param to array" do
@@ -33,16 +35,6 @@ describe 'cinder::db::mysql' do
       }
     end
 
-    it {should_not contain_cinder__db__mysql__host_access("127.0.0.1").with(
-      :user     => 'cinder',
-      :password => 'cinderpass',
-      :database => 'cinder'
-    )}
-    it {should contain_cinder__db__mysql__host_access("%").with(
-      :user     => 'cinder',
-      :password => 'cinderpass',
-      :database => 'cinder'
-    )}
   end
   describe "overriding allowed_hosts param to string" do
     let :params do
@@ -52,11 +44,6 @@ describe 'cinder::db::mysql' do
       }
     end
 
-    it {should contain_cinder__db__mysql__host_access("192.168.1.1").with(
-      :user     => 'cinder',
-      :password => 'cinderpass2',
-      :database => 'cinder'
-    )}
   end
 
   describe "overriding allowed_hosts param equals to host param " do
@@ -67,10 +54,5 @@ describe 'cinder::db::mysql' do
       }
     end
 
-    it {should_not contain_cinder__db__mysql__host_access("127.0.0.1").with(
-      :user     => 'cinder',
-      :password => 'cinderpass2',
-      :database => 'cinder'
-    )}
   end
 end

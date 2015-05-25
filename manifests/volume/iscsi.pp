@@ -1,46 +1,57 @@
+# == Class: cinder::volume::iscsi
+#
+# Configures Cinder volume ISCSI driver.
+#
+# === Parameters
+#
+# [*iscsi_ip_address*]
+#   (Required) The IP address that the iSCSI daemon is listening on
+#
+# [*volume_driver*]
+#   (Optional) Driver to use for volume creation
+#   Defaults to 'cinder.volume.drivers.lvm.LVMVolumeDriver'.
+#
+# [*volume_group*]
+#   (Optional) Name for the VG that will contain exported volumes
+#   Defaults to 'cinder-volumes'.
+#
+# [*volumes_dir*]
+#   (Optional) Volume configuration file storage directory
+#   Defaults to '/var/lib/cinder/volumes'.
+#
+# [*iscsi_helper*]
+#   (Optional) iSCSI target user-land tool to use.
+#   Defaults to '$::cinder::params::iscsi_helper'.
+#
+# [*iscsi_protocol*]
+#   (Optional) Protocol to use as iSCSI driver
+#   Defaults to 'iscsi'.
+#
+# [*extra_options*]
+#   (optional) Hash of extra options to pass to the backend stanza
+#   Defaults to: {}
+#   Example :
+#     { 'iscsi_backend/param1' => { 'value' => value1 } }
 #
 class cinder::volume::iscsi (
   $iscsi_ip_address,
+  $volume_driver     = 'cinder.volume.drivers.lvm.LVMVolumeDriver',
   $volume_group      = 'cinder-volumes',
-  $iscsi_helper      = 'tgtadm'
+  $volumes_dir       = '/var/lib/cinder/volumes',
+  $iscsi_helper      = $::cinder::params::iscsi_helper,
+  $iscsi_protocol    = 'iscsi',
+  $extra_options     = {},
 ) {
 
-  include cinder::params
+  include ::cinder::params
 
-  cinder_config {
-    'DEFAULT/iscsi_ip_address': value => $iscsi_ip_address;
-    'DEFAULT/iscsi_helper':     value => $iscsi_helper;
-    'DEFAULT/volume_group':     value => $volume_group;
+  cinder::backend::iscsi { 'DEFAULT':
+    iscsi_ip_address => $iscsi_ip_address,
+    volume_driver    => $volume_driver,
+    volume_group     => $volume_group,
+    volumes_dir      => $volumes_dir,
+    iscsi_helper     => $iscsi_helper,
+    iscsi_protocol   => $iscsi_protocol,
+    extra_options    => $extra_options,
   }
-
-  case $iscsi_helper {
-    'tgtadm': {
-      package { 'tgt':
-        ensure => present,
-        name   => $::cinder::params::tgt_package_name,
-      }
-
-      if($::osfamily == 'RedHat') {
-        file_line { 'cinder include':
-          path    => '/etc/tgt/targets.conf',
-          line    => 'include /etc/cinder/volumes/*',
-          match   => '#?include /',
-          require => Package['tgt'],
-          notify  => Service['tgtd'],
-        }
-      }
-
-      service { 'tgtd':
-        ensure  => running,
-        name    => $::cinder::params::tgt_service_name,
-        enable  => true,
-        require => Class['cinder::volume'],
-      }
-    }
-
-    default: {
-      fail("Unsupported iscsi helper: ${iscsi_helper}.")
-    }
-  }
-
 }

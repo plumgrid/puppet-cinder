@@ -1,3 +1,4 @@
+# == Class: cinder::params
 #
 class cinder::params {
 
@@ -19,6 +20,8 @@ class cinder::params {
     $tgt_package_name   = 'tgt'
     $tgt_service_name   = 'tgt'
     $ceph_init_override = '/etc/init/cinder-volume.override'
+    $iscsi_helper       = 'tgtadm'
+    $lio_package_name   = 'targetcli'
 
   } elsif($::osfamily == 'RedHat') {
 
@@ -36,8 +39,22 @@ class cinder::params {
     $tgt_package_name   = 'scsi-target-utils'
     $tgt_service_name   = 'tgtd'
     $ceph_init_override = '/etc/sysconfig/openstack-cinder-volume'
+    $lio_package_name   = 'targetcli'
+
+    case $::operatingsystem {
+      'RedHat', 'CentOS', 'Scientific', 'OracleLinux': {
+        if (versioncmp($::operatingsystemmajrelease, '7') >= 0) {
+          $iscsi_helper = 'lioadm'
+        } else {
+          $iscsi_helper = 'tgtadm'
+        }
+      }
+      default: {
+        $iscsi_helper = 'lioadm'
+      }
+    }
 
   } else {
-    fail("unsuported osfamily ${::osfamily}, currently Debian and Redhat are the only supported platforms")
+    fail("unsupported osfamily ${::osfamily}, currently Debian and Redhat are the only supported platforms")
   }
 }

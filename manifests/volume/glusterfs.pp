@@ -24,6 +24,12 @@
 #   (optional) The config file to store the given $glusterfs_shares.
 #   Defaults to '/etc/cinder/shares.conf'
 #
+# [*extra_options*]
+#   (optional) Hash of extra options to pass to the backend stanza
+#   Defaults to: {}
+#   Example :
+#     { 'glusterfs_backend/param1' => { 'value' => value1 } }
+#
 # === Examples
 #
 # class { 'cinder::volume::glusterfs':
@@ -35,26 +41,16 @@ class cinder::volume::glusterfs (
   $glusterfs_disk_util        = false,
   $glusterfs_sparsed_volumes  = undef,
   $glusterfs_mount_point_base = undef,
-  $glusterfs_shares_config    = '/etc/cinder/shares.conf'
+  $glusterfs_shares_config    = '/etc/cinder/shares.conf',
+  $extra_options              = {},
 ) {
 
-  if $glusterfs_disk_util {
-    fail('glusterfs_disk_util is removed in Icehouse.')
-  }
-
-  $content = join($glusterfs_shares, "\n")
-
-  file {$glusterfs_shares_config:
-    content => "${content}\n",
-    require => Package['cinder'],
-    notify  => Service['cinder-volume']
-  }
-
-  cinder_config {
-    'DEFAULT/volume_driver':        value =>
-      'cinder.volume.drivers.glusterfs.GlusterfsDriver';
-    'DEFAULT/glusterfs_shares_config':    value => $glusterfs_shares_config;
-    'DEFAULT/glusterfs_sparsed_volumes':  value => $glusterfs_sparsed_volumes;
-    'DEFAULT/glusterfs_mount_point_base': value => $glusterfs_mount_point_base;
+  cinder::backend::glusterfs { 'DEFAULT':
+    glusterfs_shares           => $glusterfs_shares,
+    glusterfs_disk_util        => $glusterfs_disk_util,
+    glusterfs_sparsed_volumes  => $glusterfs_sparsed_volumes,
+    glusterfs_mount_point_base => $glusterfs_mount_point_base,
+    glusterfs_shares_config    => $glusterfs_shares_config,
+    extra_options              => $extra_options,
   }
 }
