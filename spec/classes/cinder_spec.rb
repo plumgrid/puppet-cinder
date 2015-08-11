@@ -19,13 +19,13 @@ describe 'cinder' do
     it 'should contain default config' do
       is_expected.to contain_cinder_config('DEFAULT/rpc_backend').with(:value => 'cinder.openstack.common.rpc.impl_kombu')
       is_expected.to contain_cinder_config('DEFAULT/control_exchange').with(:value => 'openstack')
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_password').with(:value => 'guest', :secret => true)
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_host').with(:value => '127.0.0.1')
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_port').with(:value => '5672')
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_hosts').with(:value => '127.0.0.1:5672')
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_ha_queues').with(:value => false)
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_virtual_host').with(:value => '/')
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_userid').with(:value => 'guest')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_password').with(:value => 'guest', :secret => true)
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_host').with(:value => '127.0.0.1')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_port').with(:value => '5672')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_hosts').with(:value => '127.0.0.1:5672')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_ha_queues').with(:value => false)
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_virtual_host').with(:value => '/')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_userid').with(:value => 'guest')
       is_expected.to contain_cinder_config('database/connection').with(:value  => 'mysql://user:password@host/database', :secret => true)
       is_expected.to contain_cinder_config('database/idle_timeout').with(:value => '3600')
       is_expected.to contain_cinder_config('database/min_pool_size').with(:value => '1')
@@ -41,20 +41,6 @@ describe 'cinder' do
       is_expected.to contain_cinder_config('DEFAULT/log_dir').with(:value => '/var/log/cinder')
     end
 
-    it { is_expected.to contain_file('/etc/cinder/cinder.conf').with(
-      :owner   => 'cinder',
-      :group   => 'cinder',
-      :mode    => '0600',
-      :require => 'Package[cinder]'
-    ) }
-
-    it { is_expected.to contain_file('/etc/cinder/api-paste.ini').with(
-      :owner   => 'cinder',
-      :group   => 'cinder',
-      :mode    => '0600',
-      :require => 'Package[cinder]'
-    ) }
-
   end
   describe 'with modified rabbit_hosts' do
     let :params do
@@ -62,10 +48,10 @@ describe 'cinder' do
     end
 
     it 'should contain many' do
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_host').with(:value => nil)
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_port').with(:value => nil)
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_hosts').with(:value => 'rabbit1:5672,rabbit2:5672')
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_ha_queues').with(:value => true)
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_host').with(:value => nil)
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_port').with(:value => nil)
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_hosts').with(:value => 'rabbit1:5672,rabbit2:5672')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_ha_queues').with(:value => true)
     end
   end
 
@@ -75,10 +61,10 @@ describe 'cinder' do
     end
 
     it 'should contain many' do
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_host').with(:value => nil)
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_port').with(:value => nil)
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_hosts').with(:value => 'rabbit1:5672')
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_ha_queues').with(:value => true)
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_host').with(:value => nil)
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_port').with(:value => nil)
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_hosts').with(:value => 'rabbit1:5672')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_ha_queues').with(:value => true)
     end
   end
 
@@ -159,11 +145,11 @@ describe 'cinder' do
     end
 
     it do
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_use_ssl').with_value('true')
-      is_expected.to contain_cinder_config('DEFAULT/kombu_ssl_ca_certs').with_value('/path/to/ssl/ca/certs')
-      is_expected.to contain_cinder_config('DEFAULT/kombu_ssl_certfile').with_value('/path/to/ssl/cert/file')
-      is_expected.to contain_cinder_config('DEFAULT/kombu_ssl_keyfile').with_value('/path/to/ssl/keyfile')
-      is_expected.to contain_cinder_config('DEFAULT/kombu_ssl_version').with_value('TLSv1')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_use_ssl').with_value('true')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/kombu_ssl_ca_certs').with_value('/path/to/ssl/ca/certs')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/kombu_ssl_certfile').with_value('/path/to/ssl/cert/file')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/kombu_ssl_keyfile').with_value('/path/to/ssl/keyfile')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/kombu_ssl_version').with_value('TLSv1')
     end
   end
 
@@ -175,11 +161,11 @@ describe 'cinder' do
     end
 
     it do
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_use_ssl').with_value('true')
-      is_expected.to contain_cinder_config('DEFAULT/kombu_ssl_ca_certs').with_ensure('absent')
-      is_expected.to contain_cinder_config('DEFAULT/kombu_ssl_certfile').with_ensure('absent')
-      is_expected.to contain_cinder_config('DEFAULT/kombu_ssl_keyfile').with_ensure('absent')
-      is_expected.to contain_cinder_config('DEFAULT/kombu_ssl_version').with_value('TLSv1')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_use_ssl').with_value('true')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/kombu_ssl_ca_certs').with_ensure('absent')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/kombu_ssl_certfile').with_ensure('absent')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/kombu_ssl_keyfile').with_ensure('absent')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/kombu_ssl_version').with_value('TLSv1')
     end
   end
 
@@ -195,11 +181,11 @@ describe 'cinder' do
     end
 
     it do
-      is_expected.to contain_cinder_config('DEFAULT/rabbit_use_ssl').with_value('false')
-      is_expected.to contain_cinder_config('DEFAULT/kombu_ssl_ca_certs').with_ensure('absent')
-      is_expected.to contain_cinder_config('DEFAULT/kombu_ssl_certfile').with_ensure('absent')
-      is_expected.to contain_cinder_config('DEFAULT/kombu_ssl_keyfile').with_ensure('absent')
-      is_expected.to contain_cinder_config('DEFAULT/kombu_ssl_version').with_ensure('absent')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/rabbit_use_ssl').with_value('false')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/kombu_ssl_ca_certs').with_ensure('absent')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/kombu_ssl_certfile').with_ensure('absent')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/kombu_ssl_keyfile').with_ensure('absent')
+      is_expected.to contain_cinder_config('oslo_messaging_rabbit/kombu_ssl_version').with_ensure('absent')
     end
   end
 

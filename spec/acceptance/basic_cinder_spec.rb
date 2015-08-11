@@ -9,27 +9,32 @@ describe 'basic cinder' do
       Exec { logoutput => 'on_failure' }
 
       # Common resources
-      include ::apt
-      # some packages are not autoupgraded in trusty.
-      # it will be fixed in liberty, but broken in kilo.
-      $need_to_be_upgraded = ['python-tz', 'python-pbr']
-      apt::source { 'trusty-updates-kilo':
-        location          => 'http://ubuntu-cloud.archive.canonical.com/ubuntu/',
-        release           => 'trusty-updates',
-        required_packages => 'ubuntu-cloud-keyring',
-        repos             => 'kilo/main',
-        trusted_source    => true,
-      } ~>
-      exec { '/usr/bin/apt-get -y dist-upgrade':
-        refreshonly => true,
+      case $::osfamily {
+        'Debian': {
+          include ::apt
+          class { '::openstack_extras::repo::debian::ubuntu':
+            release         => 'kilo',
+            package_require => true,
+          }
+          $package_provider = 'apt'
+        }
+        'RedHat': {
+          class { '::openstack_extras::repo::redhat::redhat':
+            release => 'kilo',
+          }
+          package { 'openstack-selinux': ensure => 'latest' }
+          $package_provider = 'yum'
+        }
+        default: {
+          fail("Unsupported osfamily (${::osfamily})")
+        }
       }
-      Apt::Source['trusty-updates-kilo'] -> Package<| |>
 
       class { '::mysql::server': }
 
       class { '::rabbitmq':
         delete_guest_user => true,
-        erlang_cookie     => 'secrete',
+        package_provider  => $package_provider,
       }
 
       rabbitmq_vhost { '/':
@@ -95,6 +100,7 @@ describe 'basic cinder' do
       class { '::cinder::client': }
       class { '::cinder::quota': }
       class { '::cinder::scheduler': }
+      class { '::cinder::scheduler::filter': }
       class { '::cinder::volume': }
       # TODO: create a backend and spawn a volume
       EOS
