@@ -7,12 +7,13 @@ describe 'cinder::volume' do
   end
 
   let :facts do
-    {:osfamily => 'Debian'}
+    @default_facts.merge({:osfamily => 'Debian'})
   end
 
   it { is_expected.to contain_package('cinder-volume').with_ensure('present') }
   it { is_expected.to contain_service('cinder-volume').with(
-      'hasstatus' => true
+      'hasstatus' => true,
+      'tag'       => 'cinder-service',
   )}
 
   describe 'with manage_service false' do

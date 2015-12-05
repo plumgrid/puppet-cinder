@@ -1,7 +1,7 @@
 cinder
 =======
 
-6.0.0 - 2015.1 - Kilo
+7.0.0 - 2015.2 - Liberty
 
 #### Table of Contents
 
@@ -34,7 +34,7 @@ Setup
 
 ### Installing cinder
 
-    puppet module install puppetlabs/cinder
+    puppet module install openstack/cinder
 
 ### Beginning with cinder
 
@@ -156,6 +156,36 @@ Implementation
 ### cinder
 
 cinder is a combination of Puppet manifest and ruby code to delivery configuration and extra functionality through types and providers.
+
+### Types
+
+#### cinder_config
+
+The `cinder_config` provider is a children of the ini_setting provider. It allows one to write an entry in the `/etc/cinder/cinder.conf` file.
+
+```puppet
+cinder_config { 'DEFAULT/verbose' :
+  value => true,
+}
+```
+
+This will write `verbose=true` in the `[DEFAULT]` section.
+
+##### name
+
+Section/setting name to manage from `cinder.conf`
+
+##### value
+
+The value of the setting to be defined.
+
+##### secret
+
+Whether to hide the value from Puppet logs. Defaults to `false`.
+
+##### ensure_absent_val
+
+If value is equal to ensure_absent_val then the resource will behave as if `ensure => absent` was specified. Defaults to `<SERVICE DEFAULT>`
 
 Limitations
 ------------

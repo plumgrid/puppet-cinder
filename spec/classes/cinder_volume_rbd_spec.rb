@@ -5,11 +5,11 @@ describe 'cinder::volume::rbd' do
     {
       :rbd_pool                         => 'volumes',
       :rbd_user                         => 'test',
-      :rbd_secret_uuid                  => '0123456789',
+      :rbd_secret_uuid                  => '<SERVICE DEFAULT>',
       :rbd_ceph_conf                    => '/foo/boo/zoo/ceph.conf',
       :rbd_flatten_volume_from_snapshot => true,
-      :volume_tmp_dir                   => '/foo/tmp',
-      :rbd_max_clone_depth              => '0'
+      :volume_tmp_dir                   => '<SERVICE DEFAULT>',
+      :rbd_max_clone_depth              => '0',
     }
   end
 
@@ -41,16 +41,6 @@ describe 'cinder::volume::rbd' do
         :notify  => 'Service[cinder-volume]')
     end
 
-    context 'with rbd_secret_uuid disabled' do
-      let(:params) { req_params.merge!({:rbd_secret_uuid => false}) }
-      it { is_expected.to contain_cinder_config('DEFAULT/rbd_secret_uuid').with_ensure('absent') }
-    end
-
-    context 'with volume_tmp_dir disabled' do
-      let(:params) { req_params.merge!({:volume_tmp_dir => false}) }
-      it { is_expected.to contain_cinder_config('DEFAULT/volume_tmp_dir').with_ensure('absent') }
-    end
-
   end
 
   describe 'rbd volume driver with additional configuration' do
@@ -58,7 +48,7 @@ describe 'cinder::volume::rbd' do
       params.merge!({:extra_options => {'rbd_backend/param1' => {'value' => 'value1'}}})
     end
     it 'configure rbd volume with additional configuration' do
-      should contain_cinder__backend__rbd('DEFAULT').with({
+      is_expected.to contain_cinder__backend__rbd('DEFAULT').with({
         :extra_options => {'rbd_backend/param1' => {'value' => 'value1'}}
       })
     end

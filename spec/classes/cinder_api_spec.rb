@@ -6,8 +6,10 @@ describe 'cinder::api' do
     {:keystone_password => 'foo'}
   end
   let :facts do
-    {:osfamily       => 'Debian',
-     :processorcount => 8 }
+    @default_facts.merge({
+     :osfamily       => 'Debian',
+     :processorcount => 8
+    })
   end
 
   describe 'with only required params' do
@@ -17,7 +19,8 @@ describe 'cinder::api' do
 
     it { is_expected.to contain_service('cinder-api').with(
       'hasstatus' => true,
-      'ensure' => 'running'
+      'ensure' => 'running',
+      'tag' => 'cinder-service',
     )}
 
     it 'should configure cinder api correctly' do
@@ -30,47 +33,68 @@ describe 'cinder::api' do
       is_expected.to contain_cinder_config('DEFAULT/osapi_volume_workers').with(
        :value => '8'
       )
+      is_expected.to contain_cinder_config('DEFAULT/nova_catalog_info').with(
+       :value => 'compute:Compute Service:publicURL'
+      )
+      is_expected.to contain_cinder_config('DEFAULT/nova_catalog_admin_info').with(
+       :value => 'compute:Compute Service:adminURL'
+      )
       is_expected.to contain_cinder_config('DEFAULT/default_volume_type').with(
-       :ensure => 'absent'
+       :value => '<SERVICE DEFAULT>'
       )
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/service_protocol').with(
+      is_expected.to contain_cinder_config('DEFAULT/os_region_name').with(
+       :value => '<SERVICE DEFAULT>'
+      )
+      is_expected.to contain_cinder_config('keystone_authtoken/auth_uri').with(
+       :value => 'http://localhost:5000/'
+      )
+      is_expected.to contain_cinder_config('keystone_authtoken/admin_tenant_name').with(
+       :value => 'services'
+      )
+      is_expected.to contain_cinder_config('keystone_authtoken/admin_user').with(
+       :value => 'cinder'
+      )
+      is_expected.to contain_cinder_config('keystone_authtoken/admin_password').with(
+       :value => 'foo'
+      )
+      is_expected.to contain_cinder_config('keystone_authtoken/auth_protocol').with(
         :value => 'http'
       )
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/service_host').with(
+      is_expected.to contain_cinder_config('keystone_authtoken/auth_host').with(
         :value => 'localhost'
       )
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/service_port').with(
-        :value => '5000'
-      )
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/auth_protocol').with(
-        :value => 'http'
-      )
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/auth_host').with(
-        :value => 'localhost'
-      )
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/auth_port').with(
+      is_expected.to contain_cinder_config('keystone_authtoken/auth_port').with(
         :value => '35357'
+      )
+      is_expected.not_to contain_cinder_config('keystone_authtoken/service_protocol').with(
+        :value => 'http'
+      )
+      is_expected.not_to contain_cinder_config('keystone_authtoken/service_host').with(
+        :value => 'localhost'
+      )
+      is_expected.not_to contain_cinder_config('keystone_authtoken/service_port').with(
+        :value => '5000'
       )
       is_expected.to contain_cinder_api_paste_ini('filter:authtoken/auth_admin_prefix').with(
         :ensure => 'absent'
       )
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/admin_tenant_name').with(
-        :value => 'services'
-      )
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/admin_user').with(
-        :value => 'cinder'
-      )
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/admin_password').with(
-        :value  => 'foo',
-        :secret => true
-      )
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/auth_uri').with(
-        :value => 'http://localhost:5000/'
-      )
 
-      is_expected.to_not contain_cinder_config('DEFAULT/os_region_name')
-
+      is_expected.to contain_cinder_config('DEFAULT/os_privileged_user_name').with_value('<SERVICE DEFAULT>')
+      is_expected.to contain_cinder_config('DEFAULT/os_privileged_user_password').with_value('<SERVICE DEFAULT>')
+      is_expected.to contain_cinder_config('DEFAULT/os_privileged_user_tenant').with_value('<SERVICE DEFAULT>')
+      is_expected.to contain_cinder_config('DEFAULT/os_privileged_user_auth_url').with_value('<SERVICE DEFAULT>')
     end
+  end
+
+  describe 'with a custom nova_catalog params' do
+    let :params do
+      req_params.merge({
+        'nova_catalog_admin_info' => 'compute:nova:adminURL',
+        'nova_catalog_info' => 'compute:nova:publicURL',
+      })
+    end
+    it { is_expected.to contain_cinder_config('DEFAULT/nova_catalog_admin_info').with_value('compute:nova:adminURL') }
+    it { is_expected.to contain_cinder_config('DEFAULT/nova_catalog_info').with_value('compute:nova:publicURL') }
   end
 
   describe 'with a custom region for nova' do
@@ -81,6 +105,75 @@ describe 'cinder::api' do
       is_expected.to contain_cinder_config('DEFAULT/os_region_name').with(
         :value => 'MyRegion'
       )
+    end
+  end
+
+  describe 'with an OpenStack privileged account' do
+
+    context 'with all needed params' do
+      let :params do
+        req_params.merge({
+          'privileged_user'             => 'true',
+          'os_privileged_user_name'     => 'admin',
+          'os_privileged_user_password' => 'password',
+          'os_privileged_user_tenant'   => 'admin',
+          'os_privileged_user_auth_url' => 'http://localhost:8080',
+        })
+      end
+
+      it { is_expected.to contain_cinder_config('DEFAULT/os_privileged_user_name').with_value('admin') }
+      it { is_expected.to contain_cinder_config('DEFAULT/os_privileged_user_password').with_value('password') }
+      it { is_expected.to contain_cinder_config('DEFAULT/os_privileged_user_tenant').with_value('admin') }
+      it { is_expected.to contain_cinder_config('DEFAULT/os_privileged_user_auth_url').with_value('http://localhost:8080') }
+    end
+
+    context 'without os_privileged_user_auth_url' do
+      let :params do
+        req_params.merge({
+          'privileged_user'             => 'true',
+          'os_privileged_user_name'     => 'admin',
+          'os_privileged_user_password' => 'password',
+          'os_privileged_user_tenant'   => 'admin',
+        })
+      end
+
+      it { is_expected.to contain_cinder_config('DEFAULT/os_privileged_user_name').with_value('admin') }
+      it { is_expected.to contain_cinder_config('DEFAULT/os_privileged_user_password').with_value('password') }
+      it { is_expected.to contain_cinder_config('DEFAULT/os_privileged_user_tenant').with_value('admin') }
+      it { is_expected.to contain_cinder_config('DEFAULT/os_privileged_user_auth_url').with_value('<SERVICE DEFAULT>') }
+    end
+
+    context 'without os_privileged_user' do
+      let :params do
+        req_params.merge({
+          'privileged_user' => 'true',
+        })
+      end
+
+      it_raises 'a Puppet::Error', /The os_privileged_user_name parameter is required when privileged_user is set to true/
+    end
+
+    context 'without os_privileged_user_password' do
+      let :params do
+        req_params.merge({
+          'privileged_user'         => 'true',
+          'os_privileged_user_name' => 'admin',
+        })
+      end
+
+      it_raises 'a Puppet::Error', /The os_privileged_user_password parameter is required when privileged_user is set to true/
+    end
+
+    context 'without os_privileged_user_tenant' do
+      let :params do
+        req_params.merge({
+          'privileged_user'             => 'true',
+          'os_privileged_user_name'     => 'admin',
+          'os_privileged_user_password' => 'password',
+        })
+      end
+
+      it_raises 'a Puppet::Error', /The os_privileged_user_tenant parameter is required when privileged_user is set to true/
     end
   end
 
@@ -100,7 +193,7 @@ describe 'cinder::api' do
       req_params.merge({'keystone_auth_uri' => 'http://localhost:8080/v2.0/'})
     end
     it 'should configure cinder auth_uri correctly' do
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/auth_uri').with(
+      is_expected.to contain_cinder_config('keystone_authtoken/auth_uri').with(
         :value => 'http://localhost:8080/v2.0/'
       )
     end
@@ -125,7 +218,7 @@ describe 'cinder::api' do
         :sync_db           => false,
       }
     end
-    it { is_expected.not_to contain_exec('cinder-manage db_sync') }
+    it { is_expected.not_to contain_class('cinder::db::sync') }
   end
 
   [ '/keystone', '/keystone/admin' ].each do |keystone_auth_admin_prefix|
@@ -182,8 +275,8 @@ describe 'cinder::api' do
     it 'should stop the service' do
       is_expected.to contain_service('cinder-api').with_ensure('stopped')
     end
-    it 'should contain db_sync exec' do
-      is_expected.to contain_exec('cinder-manage db_sync')
+    it 'includes cinder::db::sync' do
+      is_expected.to contain_class('cinder::db::sync')
     end
   end
 
@@ -194,8 +287,8 @@ describe 'cinder::api' do
     it 'should not change the state of the service' do
       is_expected.to contain_service('cinder-api').without_ensure
     end
-    it 'should contain db_sync exec' do
-      is_expected.to contain_exec('cinder-manage db_sync')
+    it 'includes cinder::db::sync' do
+      is_expected.to contain_class('cinder::db::sync')
     end
   end
 
@@ -256,15 +349,15 @@ describe 'cinder::api' do
       })
     end
     it 'configures identity_uri and auth_uri but deprecates old auth settings' do
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/identity_uri').with_value("https://localhost:35357/");
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/auth_uri').with_value("https://localhost:5000/v2.0/");
+      is_expected.to contain_cinder_config('keystone_authtoken/identity_uri').with_value("https://localhost:35357/")
+      is_expected.to contain_cinder_config('keystone_authtoken/auth_uri').with_value("https://localhost:5000/v2.0/")
       is_expected.to contain_cinder_api_paste_ini('filter:authtoken/auth_admin_prefix').with(:ensure => 'absent')
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/auth_port').with(:ensure => 'absent')
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/service_port').with(:ensure => 'absent')
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/auth_protocol').with(:ensure => 'absent')
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/service_protocol').with(:ensure => 'absent')
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/auth_host').with(:ensure => 'absent')
-      is_expected.to contain_cinder_api_paste_ini('filter:authtoken/service_host').with(:ensure => 'absent')
+      is_expected.to contain_cinder_config('keystone_authtoken/auth_port').with(:ensure => 'absent')
+      is_expected.not_to contain_cinder_config('keystone_authtoken/service_port').with(:ensure => 'absent')
+      is_expected.to contain_cinder_config('keystone_authtoken/auth_protocol').with(:ensure => 'absent')
+      is_expected.not_to contain_cinder_config('keystone_authtoken/service_protocol').with(:ensure => 'absent')
+      is_expected.to contain_cinder_config('keystone_authtoken/auth_host').with(:ensure => 'absent')
+      is_expected.not_to contain_cinder_config('keystone_authtoken/service_host').with(:ensure => 'absent')
     end
   end
 

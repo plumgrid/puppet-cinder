@@ -24,10 +24,10 @@ describe 'cinder::backup' do
 
   let :default_params do
     { :enable               => true,
-      :backup_topic         => 'cinder-backup',
-      :backup_manager       => 'cinder.backup.manager.BackupManager',
-      :backup_api_class     => 'cinder.backup.api.API',
-      :backup_name_template => 'backup-%s' }
+      :backup_topic         => '<SERVICE DEFAULT>',
+      :backup_manager       => '<SERVICE DEFAULT>',
+      :backup_api_class     => '<SERVICE DEFAULT>',
+      :backup_name_template => '<SERVICE DEFAULT>' }
   end
 
   let :params do
@@ -46,15 +46,17 @@ describe 'cinder::backup' do
         is_expected.to contain_package('cinder-backup').with(
           :name   => platform_params[:backup_package],
           :ensure => 'present',
-          :tag    => 'openstack'
+          :tag    => ['openstack', 'cinder-package'],
         )
-        is_expected.to contain_package('cinder-backup').with_before(/Cinder_config\[.+\]/)
         is_expected.to contain_package('cinder-backup').with_before(/Service\[cinder-backup\]/)
       end
     end
 
     it 'ensure cinder backup service is running' do
-      is_expected.to contain_service('cinder-backup').with('hasstatus' => true)
+      is_expected.to contain_service('cinder-backup').with(
+        'hasstatus' => true,
+        'tag'       => 'cinder-service',
+      )
     end
 
     it 'configures cinder.conf' do
@@ -76,7 +78,7 @@ describe 'cinder::backup' do
 
   context 'on Debian platforms' do
     let :facts do
-      { :osfamily => 'Debian' }
+      @default_facts.merge!({ :osfamily => 'Debian' })
     end
 
     let :platform_params do
@@ -89,7 +91,7 @@ describe 'cinder::backup' do
 
   context 'on RedHat platforms' do
     let :facts do
-      { :osfamily => 'RedHat' }
+      @default_facts.merge!({ :osfamily => 'RedHat' })
     end
 
     let :platform_params do

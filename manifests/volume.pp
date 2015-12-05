@@ -27,14 +27,12 @@ class cinder::volume (
   Exec<| title == 'cinder-manage db_sync' |> ~> Service['cinder-volume']
 
   if $::cinder::params::volume_package {
-    Package['cinder-volume'] -> Cinder_config<||>
-    Package['cinder-volume'] -> Cinder_api_paste_ini<||>
     Package['cinder']        -> Package['cinder-volume']
     Package['cinder-volume'] -> Service['cinder-volume']
     package { 'cinder-volume':
       ensure => $package_ensure,
       name   => $::cinder::params::volume_package,
-      tag    => 'openstack',
+      tag    => ['openstack', 'cinder-package'],
     }
   }
 
@@ -52,5 +50,6 @@ class cinder::volume (
     enable    => $enabled,
     hasstatus => true,
     require   => Package['cinder'],
+    tag       => 'cinder-service',
   }
 }
